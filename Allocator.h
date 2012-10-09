@@ -129,8 +129,8 @@ class Allocator {
         Allocator () 
 	{
             	int requiredSpace = 8 + sizeof(T);
-			if (requiredSpace > N)
-				throw std::invalid_argument("Create another allocator with appropriate N.");
+		if (requiredSpace > N)
+			throw std::invalid_argument("Create another allocator with appropriate size N.");
 		int sentinel, sentinel = N - 8;
 		char* p = a;
 		setSentinel(*p, sentinel); //should set beginning sentintel to N - 8
@@ -157,9 +157,33 @@ class Allocator {
 * choose the first block that fits
 */
         pointer allocate (size_type n) {
-            // <your code>
-            assert(valid());
-            return 0;} // replace!
+            	int spaceNeeded = n*sizeof(T);
+		int maxSpace = N - 8;
+		int sentinel = 0;
+		int minSpaceRequired = sizeof(T) + 8;
+		int spaceLeft = 0;
+		if (spaceNeeded > maxSpace)
+			throw std::invalid_argument("Not enough space for requested memory.");
+	    	bool spaceFound = false;
+    		char* p = a;
+		char* start = a;
+		char* maxAddress = a + N;
+		while (p < maxAddress && spaceFound == false)
+		{
+			int sentinel = view(*p);
+			if (sentinel > 0) //ie a free block
+			{
+				if (sentinel > spaceNeeded) //yay, valid block found
+				{
+					spaceLeft = sentinel - 8 - spaceNeeded;
+					if (spaceLeft < minSpaceRequired)
+						spaceNeeded = sentinel;
+					
+				}
+			}	
+		}
+    		assert(valid());
+            	return 0;} // replace!
 
         // ---------
         // construct
