@@ -98,7 +98,7 @@ class Allocator {
 			beginningSentinel = view(*p);
 			if (beginningSentinel < 0) //ie, we found an occupied space
 			{
-				p = p + sizeof(int) + sizeof(T)*(beginningSentinel* -1)				
+				p = p + sizeof(int) + sizeof(T)*(beginningSentinel* -1);				
 				endingSentinel = view(*p);
 				if (beginningSentinel != endingSentinel)
 					return false;
@@ -106,7 +106,7 @@ class Allocator {
 
 			else
 			{	
-				p = p + sizeof(int) + sizeof(T)* beginningSentinel				
+				p = p + sizeof(int) + sizeof(T)* beginningSentinel;				
 				endingSentinel = view(*p);
 				if (beginningSentinel != endingSentinel)
 					return false;
@@ -126,9 +126,18 @@ class Allocator {
 * O(1) in time
 * <your documentation>
 */
-        Allocator () {
-            // <your code>
-            assert(valid());}
+        Allocator () 
+	{
+            	int requiredSpace = 8 + sizeof(T);
+			if (requiredSpace > N)
+				throw std::invalid_argument("Create another allocator with appropriate N.");
+		int sentinel, sentinel = N - 8;
+		char* p = a;
+		setSentinel(*p, sentinel); //should set beginning sentintel to N - 8
+		p = p + 4 + sentinel; //should set ending sentinel to N - 8
+		setSentinel(*p, sentinel);			
+            assert(valid());
+	}
 
         // Default copy, destructor, and copy assignment
         // Allocator (const Allocator<T>&);
@@ -162,7 +171,7 @@ class Allocator {
 * <your documentation>
 */
         void construct (pointer p, const_reference v) {
-            // new (p) T(v); // uncomment!
+            new (p) T(v); // uncomment!
             assert(valid());}
 
         // ----------
@@ -189,7 +198,7 @@ class Allocator {
 * <your documentation>
 */
         void destroy (pointer p) {
-            // p->~T(); // uncomment!
+            p->~T(); // uncomment!
             assert(valid());}};
 
 #endif // Allocator_h
