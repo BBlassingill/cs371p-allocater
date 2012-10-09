@@ -1,0 +1,43 @@
+?: need to ask the question about how the allocator is interpreted. is it an array of chars?
+?: how do you have an integer point to a character of arrays
+
+
+Valid:
+Valid method tests the sentinels to make sure they match
+	Need to have a pointer that walks through all of the memory O(n)
+		so it needs to point to the beginning of the character array
+			pointer p = (char*) a;
+	two ints, beginning and end sentinels
+	max address is (char*) a + N
+	Need to have a pointer that points to the last address:
+		char* LAST = (char*) a + N;
+	so while the pointer (needs to be a character pointer) is not equal to LAST
+		beginning =  *p; //casted to an int?
+		if the beginning is a negative number, then multiply by -1 to get a positive number
+			just increment the pointer by 4 + sentinel value * sizeof(T)
+			get backSentinel
+			if fronSentinel and backSentinel doesn't equal, then return false;
+		if the beginning is a positive number (could be free spaces)
+			just increment the pointer by 4 + sentinel value * sizeof(T)
+			get backSentinel
+			if fronSentinel and backSentinel doesn't equal, then return false;
+		increment the pointer by 4 to get to the next beginning sentinel
+	if you get through the whole while loop, return true;
+
+Allocator constructor:
+check to see if allocator size is big enough for at least one object
+	requiredSpace = 8 + sizeof(T); //takes care of two sentinels
+	if (requiredSpace > N)
+		//person didn't make an allocator big enough
+		throw an error
+int beginningSentinel, endingSentinel = N - 8;
+**NEED TO SET LOCATIONS OF THE SENTINELS IN THE CHARACTER ARRAY** - how to do this since it's an int?
+a[0] = beginningSentinel;
+a[96] = endingSentinel;
+	
+
+				
+		
+
+allocate:
+		
