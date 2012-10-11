@@ -1,3 +1,5 @@
+//Finished allocate method and deallocate
+
  // ------------------------------
 // projects/allocator/Allocator.h
 // Copyright (C) 2011
@@ -65,7 +67,7 @@ class Allocator {
 	// -----------
         // reverse of view
 	//Based off of quiz 13
-	//Useful in getting setting sentinel values
+	//Useful in setting sentinel values
         // -----------
 	int& setSentinel (char& c, int value)
 	{
@@ -168,7 +170,55 @@ class Allocator {
     		char* p = a;
 		char* start = a;
 		char* maxAddress = a + N;
+		
+		
 		while (p < maxAddress && spaceFound == false)
+		{
+			int sentinel = view(*p);
+			
+			if (sentinel >= spaceNeeded)
+			{
+				spaceFound = true;
+				start = p;
+			}
+			
+			else if (sentinel < 0) //may need to change 8 to 4 later on
+				p = p + 8 + -1*sentinel;
+			else
+				p = p + 8 + sentinel;	
+		}
+		
+		//if we get here and spaceFound is false, there's no free block and we're done
+		if (spaceFound == false)
+                	throw std::invalid_argument("There was not a block big enough for requested memory");	
+                
+                else //let's get to work
+                	{
+                		
+                		int spaceLeft = sentinel - 8 - spaceNeeded;
+                		if (spaceLeft < minSpaceRequired) //should do a merge
+                		{
+                			spaceNeeded = sentinel; //space we're working with is now equal to a valid size
+                			spaceLeft = 0;
+                		}
+                		
+                		//update sentinels
+                		setSentinel(*p, -1*spaceNeeded);
+                		p = p + 4 + spaceNeeded;
+                		setSentinel(*p, -1*spaceNeeded); 
+                		
+                		//we need to update the rest of the blocks if there's still space left
+                		if (spaceLeft > 0)
+                		{
+                			p = p + 4; //should get to the next block
+                			setSentinel(*p, spaceLeft);
+                			p = p + 4 + spaceLeft;
+                			setSentinel(*p, spaceLeft);
+                		}               		           
+                		
+                	}				
+		
+		/*while (p < maxAddress && spaceFound == false)
 		{
 			int sentinel = view(*p);
 			if (sentinel > 0) //ie a free block
@@ -176,14 +226,36 @@ class Allocator {
 				if (sentinel > spaceNeeded) //yay, valid block found
 				{
 					spaceLeft = sentinel - 8 - spaceNeeded;
-					if (spaceLeft < minSpaceRequired)
+					if (spaceLeft < minSpaceRequired) //COME BACK HERE LATER
 						spaceNeeded = sentinel;
-					
+					else //everything is fine
+					{
+						char* beginning = p + 4; //should set beginning to where p is pointing?
+						setSentinel(*p, -1*spaceNeeded);
+						p = p + 4 + spaceNeeded;
+						setSentinel(*p, -1*spaceNeeded);
+						p = p + 4;
+						setSentinel(*p, spaceLeft);
+						//p = p + spaceLeft;
+						spaceFound = true;
+						break; //should break out of entire loop
+					}
 				}
-			}	
+				//if nothing found, increment p
+				p = p + 8 + sentinel;
+				
+			}
+			else
+			//don't do anything if the block is in use, skip to the next one
+				p = p + 8 + sentinel*-1; 	
+				
 		}
+		
+		if (spaceFound != true)
+                	throw std::invalid_argument("There was not a block big enough for requested memory");*/	
+                		
     		assert(valid());
-            	return 0;} // replace!
+            	return return reinterpret_cast<pointer>(start);} // replace!
 
         // ---------
         // construct
@@ -208,9 +280,36 @@ class Allocator {
 * <your documentation>
 * after deallocation adjacent free blocks must be coalesced
 */
-        void deallocate (pointer p, size_type = 0) {
-            // <your code>
-            assert(valid());}
+        void deallocate (pointer p, size_type = 0) { 
+            	char* location = reinterpret_cast<char*>(p) - 4;
+		if (location < a || location > a + N - 8 - sizeof(t))
+                	throw std::invalid_argument("Not a valid pointer");
+                int beginningsentinel = view(*location);
+                
+                //if sentinel is not negative, then a pointer to a free block was given	
+                if (beginningsentinel > 0)
+                	throw std::invalid_argument("Pointer points to a free block. Deallocation not possible."); 
+                
+                //move block size and 8 spots to see if next free block is free
+                location = location + 4 + sentinel*-1 + 4;
+                int nextSentinel = view(*location);
+                
+                if (nextSentinel > 0) //merge
+                {
+                	location = location - 4 - sentinel*-1 - 4; //move pointer back to the beginning
+                	setSentinel(*location, sentinel*-1 + nextSentinel);
+                	location = location + 4 + sentinel*-1;
+                	setSentinel(*location, sentinel*-1 + nextSentinel);
+                } 
+                
+                else
+                {
+                	location = location - 4 - sentinel*-1 - 4; //move pointer back to the beginning
+                	setSentinel(*location, sentinel*-1);
+                	location = location + 4 + sentinel*-1;
+                	setSentinel(*location, sentinel*-1);
+                }	               			 
+            	assert(valid());}
 
         // -------
         // destroy
@@ -226,3 +325,4 @@ class Allocator {
             assert(valid());}};
 
 #endif // Allocator_h
+
