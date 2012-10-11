@@ -53,6 +53,33 @@ struct TestAllocator : CppUnit::TestFixture {
         x.deallocate(p, s);}
 
     // --------
+    // test_three
+    // --------
+
+    void test_three () {
+        A x;
+        const difference_type s = 1;
+        const value_type v = 2;
+        const value_type u = 4;
+        const value_type y = 6;
+        const pointer p = x.allocate(s);
+        const pointer q = x.allocate(s);
+        const pointer r = x.allocate(s);
+
+        x.construct(p, v);
+        x.construct(q, u);
+        x.construct(r, y);
+
+        CPPUNIT_ASSERT(*p == v);
+        CPPUNIT_ASSERT(*q == u);
+        x.destroy(p);
+        x.destroy(r);        
+        x.destroy(q);
+        x.deallocate(p, s);
+        x.deallocate(r, s);
+        x.deallocate(q, s);}
+
+    // --------
     // test_ten
     // --------
 
@@ -148,7 +175,95 @@ struct TestAllocator : CppUnit::TestFixture {
       		x.destroy(p);
       		x.deallocate(p, s);
     }
+
+
+    // --------
+    // test two blocks
+    // --------
+
+    void test_twoBlocks() {
+        A x;
+        const value_type v = 4;
+        const difference_type s = 5;
+        const difference_type t = 1;
+        const pointer b1 = x.allocate(s);
+              pointer e1 = b1 + s;
+              pointer p1 = b1;
+        const pointer b2 = x.allocate(t);
+              pointer e2 = b2 + t;
+              pointer p2 = b2;
+        
+        try{
+            while(p1 != e1){
+                x.construct(p1,v);
+                ++p1;
+            }
+        }catch(...){
+            while (b1 != p1) {
+                --p1;
+                x.destroy(p1);}
+            x.deallocate(b1, s);
+            throw;
+        }
+        CPPUNIT_ASSERT(std::count(b1, e1, v) == s);
+        try{
+            while(p2 != e2){
+                x.construct(p2,v);
+                ++p2;
+            }
+        }catch(...){
+            while (b2 != p2) {
+                --p2;
+                x.destroy(p2);}
+            x.deallocate(b2, t);
+            throw;
+        }
+        CPPUNIT_ASSERT(std::count(b2, e2, v) == t);
+        
+        while (b1 != e1) {
+            --e1;
+            x.destroy(e1);}
+        x.deallocate(b1, s);
+        
+        while (b2 != e2) {
+            --e2;
+            x.destroy(e2);}
+        x.deallocate(b2, t);
+    }    
+
+    // -------
+    // test_coallesce
+    // -------
     
+    void test_coalesce () {
+        A x;
+        const difference_type s = 1;
+        const value_type      v = 2;
+        const pointer         b1 = x.allocate(s);
+	cout << "First allocation: " << endl;
+	cout << "First sentinel is: " << x.view(x.a[0]) << endl;
+	cout << "Second sentinel is: " << x.view(x.a[8]) << endl;
+        const pointer         b2 = x.allocate(s);
+	cout << "Second allocation: " << endl;
+	cout << "First sentinel is: " << x.view(x.a[12]) << endl;
+	cout << "Second sentinel is: " << x.view(x.a[20]) << endl;
+        const pointer         b3 = x.allocate(s);
+	cout << "Third allocation: " << endl;
+	cout << "First sentinel is: " << x.view(x.a[24]) << endl;
+	cout << "Second sentinel is: " << x.view(x.a[32]) << endl;
+
+	
+              pointer         e1 = b1 + s;
+              pointer         e2 = b3 + s;
+              pointer         e3 = b2 + s;
+        
+        x.deallocate(b1,s);
+        x.deallocate(b2,s);
+        x.deallocate(b3,s);
+	cout << "First sentinel is: " << x.view(x.a[0]) << endl;
+	cout << "Second sentinel is: " << x.view(x.a[96]) << endl;
+        CPPUNIT_ASSERT(x.view(x.a[0]) == x.view(x.a[96]));
+    }
 
     // -----
     // suite
@@ -158,8 +273,11 @@ struct TestAllocator : CppUnit::TestFixture {
     CPPUNIT_TEST(test_allocate_1);
     CPPUNIT_TEST(test_allocate_2);
     CPPUNIT_TEST(test_construct_one);
-    //CPPUNIT_TEST(test_one);
-    //CPPUNIT_TEST(test_ten);
+    CPPUNIT_TEST(test_one);
+    CPPUNIT_TEST(test_three);
+    CPPUNIT_TEST(test_ten);
+    CPPUNIT_TEST(test_twoBlocks);
+    CPPUNIT_TEST(test_coalesce);
     CPPUNIT_TEST_SUITE_END();};
 
 // ----
