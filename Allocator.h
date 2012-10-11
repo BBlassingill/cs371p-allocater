@@ -1,6 +1,6 @@
-//Fixed compilation errors
+//Fixed pointer casts and deallocate method
 
- // ------------------------------
+// ------------------------------
 // projects/allocator/Allocator.h
 // Copyright (C) 2011
 // Glenn P. Downing
@@ -102,16 +102,17 @@ class Allocator {
         	char* p = (char*) a;
 		int beginningSentinel = 0;
 		int endingSentinel = 0;
-		cout << "What is *p? " << *p << endl;
+
 		while (p < maxAddress)
 		{
-			cout << "What is *p? " << *p << endl;
+			//cout << "What is *p? " << *p << endl;
 			beginningSentinel = view(*p);
-			cout << "What is the beginningSentinel? " << beginningSentinel << endl;
+			cout << "Valid: What is the beginningSentinel? " << beginningSentinel << endl;
 			if (beginningSentinel < 0) //ie, we found an occupied space
 			{
 				p = p + sizeof(int) + (beginningSentinel* -1);				
 				endingSentinel = view(*p);
+				cout << "Valid: What is the endingSentinel? " << endingSentinel << endl;				
 				if (beginningSentinel != endingSentinel)
 					return false;
 			}
@@ -120,7 +121,7 @@ class Allocator {
 			{	
 				p = p + sizeof(int) + beginningSentinel;				
 				endingSentinel = view(*p);
-				cout << "What is the endingSentinel? " << endingSentinel << endl;				
+				cout << "Valid: What is the endingSentinel? " << endingSentinel << endl;				
 				if (beginningSentinel != endingSentinel)
 					return false;
 			}
@@ -149,7 +150,7 @@ class Allocator {
 		setSentinel(*p, sentinel); //should set beginning sentintel to N - 8
 		p = p + 4 + sentinel; //should set ending sentinel to N - 8
 		setSentinel(*p, sentinel);			
-            assert(valid());
+            	assert(valid());
 	}
 
         // Default copy, destructor, and copy assignment
@@ -179,20 +180,22 @@ class Allocator {
 		int spaceLeft = 0;
 		if (spaceNeeded > maxSpace)
 			throw std::invalid_argument("Not enough space for requested memory.");
+      		//cout << "Did I make it here?" << endl;			
 	    	bool spaceFound = false;
-    		char* p = a;
-		char* start = a;
-		char* maxAddress = a + N;
-		
+    		char* p = (char*) a;
+		char* start;
+		char* maxAddress = (char*) a + N;
+
 		
 		while (p < maxAddress && spaceFound == false)
 		{
-			int sentinel = view(*p);
-			
+			sentinel = view(*p);
+			//cout << "What is the initial sentinel? " << sentinel << endl;
 			if (sentinel >= spaceNeeded)
 			{
 				spaceFound = true;
-				start = p;
+				start = p + 4;
+				//cout << "What is the start address: " << (unsigned) start << endl;
 			}
 			
 			else if (sentinel < 0) //may need to change 8 to 4 later on
@@ -209,16 +212,23 @@ class Allocator {
                 	{
                 		
                 		spaceLeft = sentinel - 8 - spaceNeeded;
+                		//cout << "What is the amount of spaceLeft? " << spaceLeft << endl;
+				//cout << "What is the spaceNeeded? " << spaceNeeded << endl;
+				//cout << "What is the minSpaceRequired? " << minSpaceRequired << endl;
                 		if (spaceLeft < minSpaceRequired) //should do a merge
                 		{
                 			spaceNeeded = sentinel; //space we're working with is now equal to a valid size
                 			spaceLeft = 0;
                 		}
                 		
-                		//update sentinels
+                		//update sentinels **AS OF NOW THIS IS WORKING CORRECTLY**
+                		//cout << "What is the address of p before we move it? " << p << endl;
                 		setSentinel(*p, -1*spaceNeeded);
+                		//cout << "Allocate: The new frontSentinel is: " << view(*p) << endl;
                 		p = p + 4 + spaceNeeded;
+                		//cout << "What is the address of p after we move it? " << (unsigned) p << endl;
                 		setSentinel(*p, -1*spaceNeeded); 
+                		// cout << "Allocate: The new backSentinel is: " << view(*p) << endl;
                 		
                 		//we need to update the rest of the blocks if there's still space left
                 		if (spaceLeft > 0)
@@ -266,8 +276,9 @@ class Allocator {
 		
 		if (spaceFound != true)
                 	throw std::invalid_argument("There was not a block big enough for requested memory");*/	
-                		
+                cout << "Running allocate's valid: WORKS" << endl;		
     		assert(valid());
+    		//cout << "What is the start address: " << start << endl;
             	return reinterpret_cast<pointer>(start);} // replace!
 
         // ---------
@@ -281,6 +292,7 @@ class Allocator {
 */
         void construct (pointer p, const_reference v) {
             new (p) T(v); // uncomment!
+            cout << "Running construct's valid WORKS: " << endl;		
             assert(valid());}
 
         // ----------
@@ -293,11 +305,13 @@ class Allocator {
 * <your documentation>
 * after deallocation adjacent free blocks must be coalesced
 */
-        void deallocate (pointer p, size_type = 0) { 
+        void deallocate (pointer p, size_type = 0) {
+        	cout << "INSIDE DEALLOCATE!!!" << endl; 
             	char* location = reinterpret_cast<char*>(p) - 4;
 		if (location < a || location > a + N - 8 - sizeof(T))
                 	throw std::invalid_argument("Not a valid pointer");
                 int beginningSentinel = view(*location);
+                cout << "This beginningSentinel should be -4. It is: " << beginningSentinel << endl;
                 
                 //if sentinel is not negative, then a pointer to a free block was given	
                 if (beginningSentinel > 0)
@@ -306,13 +320,16 @@ class Allocator {
                 //move block size and 8 spots to see if next free block is free
                 location = location + 4 + beginningSentinel*-1 + 4;
                 int nextSentinel = view(*location);
+                cout << "The next sentinel should be 80. It is: " << nextSentinel << endl;
                 
                 if (nextSentinel > 0) //merge
                 {
                 	location = location - 4 - beginningSentinel*-1 - 4; //move pointer back to the beginning
-                	setSentinel(*location, beginningSentinel*-1 + nextSentinel);
-                	location = location + 4 + beginningSentinel*-1;
-                	setSentinel(*location, beginningSentinel*-1 + nextSentinel);
+                	setSentinel(*location, beginningSentinel*-1 + nextSentinel + 4 + 4);
+                	cout << "The new front sentinel should be 92. It is: " << view(*location) << endl;
+                	location = location + 8 + beginningSentinel*-1 + nextSentinel + 4;
+                	setSentinel(*location, beginningSentinel*-1 + nextSentinel + 4 + 4);
+                	cout << "The new back sentinel should 92. It is: " << view(*location) << endl;
                 } 
                 
                 else
@@ -321,7 +338,9 @@ class Allocator {
                 	setSentinel(*location, beginningSentinel*-1);
                 	location = location + 4 + beginningSentinel*-1;
                 	setSentinel(*location, beginningSentinel*-1);
-                }	               			 
+                }
+                
+                cout << "Deallocate's valid: " << endl;	               			 
             	assert(valid());}
 
         // -------
@@ -335,6 +354,8 @@ class Allocator {
 */
         void destroy (pointer p) {
             p->~T(); // uncomment!
+            cout << "Destroy's valid: WORKS" << endl;
+            cout << "Pointer p: " << (unsigned) p << endl;
             assert(valid());}};
 
 #endif // Allocator_h
