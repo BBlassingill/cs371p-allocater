@@ -1,4 +1,4 @@
-//Finished allocate method and deallocate
+//Fixed compilation errors
 
  // ------------------------------
 // projects/allocator/Allocator.h
@@ -16,7 +16,8 @@
 #include <cassert> // assert
 #include <new> // new
 #include <stdexcept> // invalid_argument
-
+#include <iostream> //output
+using namespace std;
 // ---------
 // Allocator
 // ---------
@@ -59,7 +60,7 @@ class Allocator {
 	//Based off of quiz 13
 	//Useful in getting sentinel values
         // -----------
-	int& view (char& c)
+	int& view (char& c) const
 	{
 		return *reinterpret_cast<int*>(&c);
 	}
@@ -69,7 +70,7 @@ class Allocator {
 	//Based off of quiz 13
 	//Useful in setting sentinel values
         // -----------
-	int& setSentinel (char& c, int value)
+	void setSentinel (char& c, int value)
 	{
 		*(reinterpret_cast<int*>(&c)) = value;
 	}
@@ -80,7 +81,10 @@ class Allocator {
         // ----
 
         char a[N];
-	char* p = (char *) a; //set a char pointer to the beginning of the array
+	//char* p = a; //set a char pointer to the beginning of the array
+	//illegal apparently
+	
+	
         // -----
         // valid
         // -----
@@ -90,17 +94,23 @@ class Allocator {
 * O(n) in time
 * An allocator is valid if all the sentinel values match up
 */
+
         bool valid () const 
 	{
+
         	char* maxAddress = (char*) a + N;
+        	char* p = (char*) a;
 		int beginningSentinel = 0;
 		int endingSentinel = 0;
-		while (p < maxAdress)
+		cout << "What is *p? " << *p << endl;
+		while (p < maxAddress)
 		{
+			cout << "What is *p? " << *p << endl;
 			beginningSentinel = view(*p);
+			cout << "What is the beginningSentinel? " << beginningSentinel << endl;
 			if (beginningSentinel < 0) //ie, we found an occupied space
 			{
-				p = p + sizeof(int) + sizeof(T)*(beginningSentinel* -1);				
+				p = p + sizeof(int) + (beginningSentinel* -1);				
 				endingSentinel = view(*p);
 				if (beginningSentinel != endingSentinel)
 					return false;
@@ -108,8 +118,9 @@ class Allocator {
 
 			else
 			{	
-				p = p + sizeof(int) + sizeof(T)* beginningSentinel;				
+				p = p + sizeof(int) + beginningSentinel;				
 				endingSentinel = view(*p);
+				cout << "What is the endingSentinel? " << endingSentinel << endl;				
 				if (beginningSentinel != endingSentinel)
 					return false;
 			}
@@ -133,7 +144,7 @@ class Allocator {
             	int requiredSpace = 8 + sizeof(T);
 		if (requiredSpace > N)
 			throw std::invalid_argument("Create another allocator with appropriate size N.");
-		int sentinel, sentinel = N - 8;
+		int sentinel = N - 8;
 		char* p = a;
 		setSentinel(*p, sentinel); //should set beginning sentintel to N - 8
 		p = p + 4 + sentinel; //should set ending sentinel to N - 8
@@ -159,6 +170,8 @@ class Allocator {
 * choose the first block that fits
 */
         pointer allocate (size_type n) {
+        	if (n == 0)
+        		throw std::invalid_argument("Needs at least one element to allocate.");
             	int spaceNeeded = n*sizeof(T);
 		int maxSpace = N - 8;
 		int sentinel = 0;
@@ -195,7 +208,7 @@ class Allocator {
                 else //let's get to work
                 	{
                 		
-                		int spaceLeft = sentinel - 8 - spaceNeeded;
+                		spaceLeft = sentinel - 8 - spaceNeeded;
                 		if (spaceLeft < minSpaceRequired) //should do a merge
                 		{
                 			spaceNeeded = sentinel; //space we're working with is now equal to a valid size
@@ -255,7 +268,7 @@ class Allocator {
                 	throw std::invalid_argument("There was not a block big enough for requested memory");*/	
                 		
     		assert(valid());
-            	return return reinterpret_cast<pointer>(start);} // replace!
+            	return reinterpret_cast<pointer>(start);} // replace!
 
         // ---------
         // construct
@@ -282,32 +295,32 @@ class Allocator {
 */
         void deallocate (pointer p, size_type = 0) { 
             	char* location = reinterpret_cast<char*>(p) - 4;
-		if (location < a || location > a + N - 8 - sizeof(t))
+		if (location < a || location > a + N - 8 - sizeof(T))
                 	throw std::invalid_argument("Not a valid pointer");
-                int beginningsentinel = view(*location);
+                int beginningSentinel = view(*location);
                 
                 //if sentinel is not negative, then a pointer to a free block was given	
-                if (beginningsentinel > 0)
+                if (beginningSentinel > 0)
                 	throw std::invalid_argument("Pointer points to a free block. Deallocation not possible."); 
                 
                 //move block size and 8 spots to see if next free block is free
-                location = location + 4 + sentinel*-1 + 4;
+                location = location + 4 + beginningSentinel*-1 + 4;
                 int nextSentinel = view(*location);
                 
                 if (nextSentinel > 0) //merge
                 {
-                	location = location - 4 - sentinel*-1 - 4; //move pointer back to the beginning
-                	setSentinel(*location, sentinel*-1 + nextSentinel);
-                	location = location + 4 + sentinel*-1;
-                	setSentinel(*location, sentinel*-1 + nextSentinel);
+                	location = location - 4 - beginningSentinel*-1 - 4; //move pointer back to the beginning
+                	setSentinel(*location, beginningSentinel*-1 + nextSentinel);
+                	location = location + 4 + beginningSentinel*-1;
+                	setSentinel(*location, beginningSentinel*-1 + nextSentinel);
                 } 
                 
                 else
                 {
-                	location = location - 4 - sentinel*-1 - 4; //move pointer back to the beginning
-                	setSentinel(*location, sentinel*-1);
-                	location = location + 4 + sentinel*-1;
-                	setSentinel(*location, sentinel*-1);
+                	location = location - 4 - beginningSentinel*-1 - 4; //move pointer back to the beginning
+                	setSentinel(*location, beginningSentinel*-1);
+                	location = location + 4 + beginningSentinel*-1;
+                	setSentinel(*location, beginningSentinel*-1);
                 }	               			 
             	assert(valid());}
 
