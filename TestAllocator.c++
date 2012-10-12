@@ -123,17 +123,19 @@ struct TestAllocator : CppUnit::TestFixture {
         }
         }
         
+    
     // --------
-    // test not enough memory
+    // test request too many elements
     // --------   
-	void test_allocate_2 () 
+	void test_too_many_elements () 
 	{
         	
         	  A x;
-        	  const difference_type s = 26;
+        	  const difference_type s = 50;
         	  try
         	  {
         	  	x.allocate(s);
+        	  	CPPUNIT_ASSERT(false);
         	  }
         	  
         	  catch (std::invalid_argument)
@@ -141,25 +143,116 @@ struct TestAllocator : CppUnit::TestFixture {
         	  	CPPUNIT_ASSERT(true);
         	  }     
     	}
-    
+    	
     // --------
-    // test a normal allocation
+    // test request overfill for an int allocator
     // --------   
-	void test_valid_allocation () 
-	{
-        	
-        	  A x;
-        	  const difference_type s = 5;
-        	  try
-        	  {
-        	  	x.allocate(s);
-        	  }
-        	  
-        	  catch (std::invalid_argument)
-        	  {
-        	  	CPPUNIT_ASSERT(true);
-        	  }     
-    	}         
+    
+    	void test_overfill_int () //should also fail for double case
+    	{
+    		A x;
+    		try
+    		{
+    			const pointer p = x.allocate(25);
+    			x.destroy(p);
+       		}
+       		
+       		catch (std::invalid_argument)
+       		{
+       			CPPUNIT_ASSERT(true);
+       		}
+
+    	}  
+    	
+    // --------
+    // test request overfill for a double allocator
+    // --------  
+    	void test_overfill_double () //should NOT fail for the int case
+    	{
+    		A x;
+    		try
+    		{
+    			const pointer p = x.allocate(12);
+    			x.destroy(p);
+			CPPUNIT_ASSERT(true); //for int
+       		}
+       		
+       		catch (std::invalid_argument)
+       		{
+       			CPPUNIT_ASSERT(true); //for double
+       		}
+
+    	} 
+
+    // --------
+    // test request greater than required minimum size left after allocation for an int allocator
+    // --------    
+    	void test_greater_than_minSpaceRequired_int () //should merge just for int, and fail for double
+    	{
+    		A x;
+		try
+		{
+		
+			const pointer p = x.allocate(22);
+			if (x.view(x.a[0]) == -92) //case for int
+			{
+				if (x.view(x.a[96]) == -92)
+				{	
+					x.destroy(p);
+					CPPUNIT_ASSERT(true);
+				}
+				else
+				{
+					x.destroy(p);
+					CPPUNIT_ASSERT(false);
+				}	
+			}
+    			
+    			
+			else
+			{	
+				x.destroy(p);
+				CPPUNIT_ASSERT(false); 
+			}
+		}
+		
+		catch(std::invalid_argument)
+		{
+			CPPUNIT_ASSERT(true); //we want to fail for a double allocator
+			
+		}
+	}
+	
+    // --------
+    // test request greater than required minimum size left after allocation for a double allocator
+    // --------    
+    	void test_greater_than_minSpaceRequired_double () //should merge just for double
+    	{
+    		A x;
+		const pointer p = x.allocate(11);
+		if (x.view(x.a[0]) == -92) //case for double
+		{
+			if (x.view(x.a[96]) == -92)
+			{	
+				x.destroy(p);
+				CPPUNIT_ASSERT(true);
+			}
+			else
+			{
+				x.destroy(p);
+				CPPUNIT_ASSERT(false);
+			}	
+		}
+    			
+    			
+		else
+		{	
+			x.destroy(p);
+			CPPUNIT_ASSERT(true); //for int
+		}
+	}
+
+    	          	       	         
 
     // --------
     // test construct
@@ -169,7 +262,6 @@ struct TestAllocator : CppUnit::TestFixture {
 		const difference_type s = 1;
       		const value_type v = 2;
       		const pointer p = x.allocate(s);
-      		//cout << "Did I make it here?" << endl;      		
       		x.construct(p, v);
       		CPPUNIT_ASSERT(*p == v);
       		x.destroy(p);
@@ -238,39 +330,19 @@ struct TestAllocator : CppUnit::TestFixture {
     void test_coalesce () {
         A x;
         const difference_type s = 1;
-        const value_type      v = 2;
         const pointer         b1 = x.allocate(s);
-	//cout << "First allocation: " << endl;
-	//cout << "First sentinel is: " << x.view(x.a[0]) << endl;
-	//cout << "Second sentinel is: " << x.view(x.a[8]) << endl;
         const pointer         b2 = x.allocate(s);
-	//cout << "Second allocation: " << endl;
-	//cout << "First sentinel is: " << x.view(x.a[12]) << endl;
-	//cout << "Second sentinel is: " << x.view(x.a[20]) << endl;
         const pointer         b3 = x.allocate(s);
-	//cout << "Third allocation: " << endl;
-	//cout << "First sentinel is: " << x.view(x.a[24]) << endl;
-	//cout << "Second sentinel is: " << x.view(x.a[32]) << endl;
        
-	x.destroy(b1);        
+	x.destroy(b1);
 	x.deallocate(b1,s);
-	//cout << "First deallocation was valid!" << endl;
-	//cout << "First sentinel is: " << x.view(x.a[0]) << endl;;
-	//cout << "Second sentinel is: " << x.view(x.a[8]) << endl;;
-	//cout << "Last sentinel is: " << x.view(x.a[96]) << endl;
 	
-	x.destroy(b2);        
+	x.destroy(b2);   
 	x.deallocate(b2,s);
-	//cout << "Second deallocation was valid!" << endl;
-	//cout << "First sentinel is: " << x.view(x.a[0]) << endl;;
-	//cout << "Second sentinel is: " << x.view(x.a[20]) << endl;;
-	//cout << "Next sentinel is: " << x.view(x.a[24]) << endl;
 	
 	x.destroy(b3);
         x.deallocate(b3,s);
-	//cout << "‏Third deallocation was valid!" << endl;
-	//cout << "First sentinel is: " << x.view(x.a[0]) << endl;
-	//cout << "Second sentinel is: " << x.view(x.a[96]) << endl;
+
         CPPUNIT_ASSERT(x.view(x.a[0]) == x.view(x.a[96]));
     }
 
@@ -279,14 +351,18 @@ struct TestAllocator : CppUnit::TestFixture {
     // -----
 
     CPPUNIT_TEST_SUITE(TestAllocator);
-    CPPUNIT_TEST(test_allocate_1); //WORKS FINE, UNCOMMENT LATER
-    CPPUNIT_TEST(test_allocate_2); //WORKS FINE, UNCOMMENT LATER
+    CPPUNIT_TEST(test_allocate_1); 
     CPPUNIT_TEST(test_construct_one);
     CPPUNIT_TEST(test_one);
     CPPUNIT_TEST(test_three);
     CPPUNIT_TEST(test_ten);
     CPPUNIT_TEST(test_twoBlocks);
     CPPUNIT_TEST(test_coalesce);
+    CPPUNIT_TEST(test_overfill_int);
+    CPPUNIT_TEST(test_too_many_elements);
+    CPPUNIT_TEST(test_overfill_double);
+    CPPUNIT_TEST(test_greater_than_minSpaceRequired_int);
+    CPPUNIT_TEST(test_greater_than_minSpaceRequired_double);
     CPPUNIT_TEST_SUITE_END();};
 
 // ----
