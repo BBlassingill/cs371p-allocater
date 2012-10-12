@@ -240,28 +240,37 @@ struct TestAllocator : CppUnit::TestFixture {
         const difference_type s = 1;
         const value_type      v = 2;
         const pointer         b1 = x.allocate(s);
-	cout << "First allocation: " << endl;
-	cout << "First sentinel is: " << x.view(x.a[0]) << endl;
-	cout << "Second sentinel is: " << x.view(x.a[8]) << endl;
+	//cout << "First allocation: " << endl;
+	//cout << "First sentinel is: " << x.view(x.a[0]) << endl;
+	//cout << "Second sentinel is: " << x.view(x.a[8]) << endl;
         const pointer         b2 = x.allocate(s);
-	cout << "Second allocation: " << endl;
-	cout << "First sentinel is: " << x.view(x.a[12]) << endl;
-	cout << "Second sentinel is: " << x.view(x.a[20]) << endl;
+	//cout << "Second allocation: " << endl;
+	//cout << "First sentinel is: " << x.view(x.a[12]) << endl;
+	//cout << "Second sentinel is: " << x.view(x.a[20]) << endl;
         const pointer         b3 = x.allocate(s);
-	cout << "Third allocation: " << endl;
-	cout << "First sentinel is: " << x.view(x.a[24]) << endl;
-	cout << "Second sentinel is: " << x.view(x.a[32]) << endl;
-
+	//cout << "Third allocation: " << endl;
+	//cout << "First sentinel is: " << x.view(x.a[24]) << endl;
+	//cout << "Second sentinel is: " << x.view(x.a[32]) << endl;
+       
+	x.destroy(b1);        
+	x.deallocate(b1,s);
+	//cout << "First deallocation was valid!" << endl;
+	//cout << "First sentinel is: " << x.view(x.a[0]) << endl;;
+	//cout << "Second sentinel is: " << x.view(x.a[8]) << endl;;
+	//cout << "Last sentinel is: " << x.view(x.a[96]) << endl;
 	
-              pointer         e1 = b1 + s;
-              pointer         e2 = b3 + s;
-              pointer         e3 = b2 + s;
-        
-        x.deallocate(b1,s);
-        x.deallocate(b2,s);
+	x.destroy(b2);        
+	x.deallocate(b2,s);
+	//cout << "Second deallocation was valid!" << endl;
+	//cout << "First sentinel is: " << x.view(x.a[0]) << endl;;
+	//cout << "Second sentinel is: " << x.view(x.a[20]) << endl;;
+	//cout << "Next sentinel is: " << x.view(x.a[24]) << endl;
+	
+	x.destroy(b3);
         x.deallocate(b3,s);
-	cout << "First sentinel is: " << x.view(x.a[0]) << endl;
-	cout << "Second sentinel is: " << x.view(x.a[96]) << endl;
+	//cout << "‏Third deallocation was valid!" << endl;
+	//cout << "First sentinel is: " << x.view(x.a[0]) << endl;
+	//cout << "Second sentinel is: " << x.view(x.a[96]) << endl;
         CPPUNIT_ASSERT(x.view(x.a[0]) == x.view(x.a[96]));
     }
 
@@ -270,8 +279,8 @@ struct TestAllocator : CppUnit::TestFixture {
     // -----
 
     CPPUNIT_TEST_SUITE(TestAllocator);
-    CPPUNIT_TEST(test_allocate_1);
-    CPPUNIT_TEST(test_allocate_2);
+    CPPUNIT_TEST(test_allocate_1); //WORKS FINE, UNCOMMENT LATER
+    CPPUNIT_TEST(test_allocate_2); //WORKS FINE, UNCOMMENT LATER
     CPPUNIT_TEST(test_construct_one);
     CPPUNIT_TEST(test_one);
     CPPUNIT_TEST(test_three);
@@ -295,7 +304,7 @@ int main () {
   	tr.addTest(TestAllocator< Allocator<int, 100> >::suite()); // uncomment!
 
     	//tr.addTest(TestAllocator< std::allocator<double> >::suite());
-  	//tr.addTest(TestAllocator< Allocator<double, 100> >::suite()); // uncomment!
+  	tr.addTest(TestAllocator< Allocator<double, 100> >::suite()); // uncomment!
 
     	tr.run();
 
